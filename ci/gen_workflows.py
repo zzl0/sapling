@@ -347,7 +347,7 @@ RUN rm -rf /tmp/repo
         BUILD = "build"
         artifact_key = f"macos-homebrew-{arch}-bottle"
         mac_release = "monterey"
-        extension = f"{mac_release}.bottle.tar.gz"
+        extension = f"{mac_release}.bottle.2.tar.gz"
         final_ext = f"{'' if arch == 'x86' else 'arm64_'}{extension}"
         artifact_glob = "sapling*" + extension
 
