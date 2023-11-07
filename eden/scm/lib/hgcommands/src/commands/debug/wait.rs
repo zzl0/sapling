@@ -9,7 +9,6 @@ use std::io::Write;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use std::sync::mpsc;
-use std::sync::Arc;
 use std::time::Duration;
 use std::time::Instant;
 
@@ -175,26 +174,32 @@ pub fn synopsis() -> Option<&'static str> {
 ///
 /// Errors like edenfs commit out-of-date is considered transient and will be
 /// retired with limited patience.
+#[allow(unused_variables)]
 fn should_retry(error: &anyhow::Error, error_start: &mut Option<Instant>) -> bool {
-    if error_start.is_none() {
-        // Track the error start time.
-        *error_start = Some(Instant::now());
-    }
-
-    let mut patience = None;
-    if let Some(error) = error.downcast_ref::<edenfs_client::EdenError>() {
-        // Assuming that a checkout is in process. Expect those to recover later.
-        tracing::trace!("eden error code: {}", error.error_type);
-        if error.error_type == "OUT_OF_DATE_PARENT" || error.error_type == "CHECKOUT_IN_PROGRESS" {
-            patience = Some(Duration::from_secs(60));
+    #[cfg(feature = "eden")]
+    {
+        if error_start.is_none() {
+            // Track the error start time.
+            *error_start = Some(Instant::now());
         }
-    } else {
-        tracing::trace!("non-eden error: {:?}", error);
-    }
 
-    if let (Some(start), Some(patience)) = (error_start.as_ref(), patience) {
-        if start.elapsed() < patience {
-            return true;
+        let mut patience = None;
+        if let Some(error) = error.downcast_ref::<edenfs_client::EdenError>() {
+            // Assuming that a checkout is in process. Expect those to recover later.
+            tracing::trace!("eden error code: {}", error.error_type);
+            if error.error_type == "OUT_OF_DATE_PARENT"
+                || error.error_type == "CHECKOUT_IN_PROGRESS"
+            {
+                patience = Some(Duration::from_secs(60));
+            }
+        } else {
+            tracing::trace!("non-eden error: {:?}", error);
+        }
+
+        if let (Some(start), Some(patience)) = (error_start.as_ref(), patience) {
+            if start.elapsed() < patience {
+                return true;
+            }
         }
     }
 
