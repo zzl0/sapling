@@ -77,7 +77,7 @@ oss: local
 
 install-oss: oss
 	SAPLING_OSS_BUILD=true HGNAME=$(SL_NAME) \
-          $(shell $(PYTHON3) contrib/pick_python.py $(PYTHON3)) setup.py $(PURE) \
+	  $(shell $(PYTHON3) contrib/pick_python.py $(PYTHON3)) setup.py $(PURE) \
 	  install --root="$(DESTDIR)/" --prefix="$(PREFIX)" \
 	  --install-lib="$(PREFIX)"/lib/python3.$(PYTHON_MINOR_VERSION)/site-packages \
 	  --install-scripts="$(PREFIX)/bin" --force
