@@ -4006,13 +4006,8 @@ def init(ui, dest=".", **opts):
     """
     destpath = ui.expandpath(dest)
     usegit = opts.get("git")
-    if usegit:
+    if usegit or ui.configbool("init", "prefer-git"):
         git.clone(ui, "", destpath)
-    elif usegit is None and ui.configbool("init", "prefer-git"):
-        # In the OSS build, non-git mode doesn't give you a usable repo.
-        raise error.Abort(
-            _("please use '@prog@ init --git %s' for a better experience") % dest
-        )
     elif ui.configbool("format", "use-eager-repo"):
         bindings.eagerepo.EagerRepo.open(destpath)
     else:
