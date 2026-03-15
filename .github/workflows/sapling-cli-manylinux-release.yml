@@ -15,29 +15,38 @@ jobs:
           - runs-on: ubuntu-24.04-arm
             arch: arm64
     runs-on: ${{ matrix.runs-on }}
-    container:
-      image: ${{ format('ghcr.io/{0}/manylinux_2_34:latest', github.repository) }}
     steps:
     - name: Checkout Code
       uses: actions/checkout@v6
-    - name: Configure Git
-      run: git config --global --add safe.directory "$PWD"
-    - name: rustup
-      run: rustup default stable
+    - name: Build manylinux image
+      run: docker build -t manylinux_2_34 -f .github/workflows/manylinux_2_34.Dockerfile .
     - name: Set SAPLING_VERSION
       shell: bash
       run: echo "SAPLING_VERSION=$(ci/tag-name.sh)" >> $GITHUB_ENV
     - name: Build
-      working-directory: ./eden/scm
-      run: ${{ format('VERSION={0} python3 ./packaging/manylinux/build.py', env.SAPLING_VERSION) }}
-    - name: Rename .tar.xz
-      working-directory: ./eden/scm
-      run: ${{ format('mv sl-manylinux.tar.xz sapling-{0}-linux-{1}.tar.xz', env.SAPLING_VERSION, matrix.arch) }}
+      shell: bash
+      run: |
+        mkdir -p "${RUNNER_TEMP}/manylinux-artifacts"
+        docker run --rm \
+          -e SAPLING_VERSION="${SAPLING_VERSION}" \
+          -e MATRIX_ARCH="${{ matrix.arch }}" \
+          -v "$PWD:/work" \
+          -v "${RUNNER_TEMP}/manylinux-artifacts:/artifacts" \
+          -w /work \
+          manylinux_2_34 \
+          bash -lc '
+            git config --global --add safe.directory /work &&
+            rustup default stable &&
+            cd /work/eden/scm &&
+            VERSION="${SAPLING_VERSION}" python3 ./packaging/manylinux/build.py \
+              --output-path "/artifacts/sapling-${SAPLING_VERSION}-linux-${MATRIX_ARCH}.tar.xz"
+          '
+        find "${RUNNER_TEMP}/manylinux-artifacts" -maxdepth 1 -type f -name 'sapling*.tar.xz' -exec sudo chown "$(id -u):$(id -g)" '{}' +
     - name: Upload Artifact
       uses: actions/upload-artifact@v6
       with:
         name: sapling-linux-${{ matrix.arch }}
-        path: ./eden/scm/sapling*.tar.xz
+        path: ${{ runner.temp }}/manylinux-artifacts/sapling*.tar.xz
   publish:
     runs-on: ubuntu-latest
     needs: build
