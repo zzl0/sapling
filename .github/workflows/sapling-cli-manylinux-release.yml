@@ -29,12 +29,19 @@ jobs:
         mkdir -p "${RUNNER_TEMP}/manylinux-artifacts"
         docker run --rm \
           -e SAPLING_VERSION="${SAPLING_VERSION}" \
+          -e MATRIX_ARCH="${{ matrix.arch }}" \
           -v "$PWD:/work" \
           -v "${RUNNER_TEMP}/manylinux-artifacts:/artifacts" \
           -w /work \
           manylinux_2_34 \
-          bash -lc 'git config --global --add safe.directory /work && rustup default stable && cd /work/eden/scm && VERSION="${SAPLING_VERSION}" python3 ./packaging/manylinux/build.py --output-path "/artifacts/sapling-${SAPLING_VERSION}-linux-${{ matrix.arch }}.tar.xz"'
-        sudo chown -R "$(id -u):$(id -g)" "${RUNNER_TEMP}/manylinux-artifacts"
+          bash -lc '
+            git config --global --add safe.directory /work &&
+            rustup default stable &&
+            cd /work/eden/scm &&
+            VERSION="${SAPLING_VERSION}" python3 ./packaging/manylinux/build.py \
+              --output-path "/artifacts/sapling-${SAPLING_VERSION}-linux-${MATRIX_ARCH}.tar.xz"
+          '
+        find "${RUNNER_TEMP}/manylinux-artifacts" -maxdepth 1 -type f -name 'sapling*.tar.xz' -exec sudo chown "$(id -u):$(id -g)" '{}' +
     - name: Upload Artifact
       uses: actions/upload-artifact@v6
       with:
