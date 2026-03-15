@@ -10,7 +10,10 @@ ENV PATH=/root/.nvm/versions/node/v22.16.0/bin:/opt/python/cp312-cp312/bin:/opt/
 # - Used by setup.py
 RUN /opt/python/cp312-cp312/bin/pip install setuptools
 # - Extract libpython.a for static linking.
-RUN ( cd /opt/_internal && tar -xf static-libs-for-embedding-only.tar.xz )
+#   Use '|| true' to ignore extraction errors for older Python versions
+#   (e.g. cpython-3.8, cpython-3.9) that fail under QEMU arm64 emulation.
+#   Only cpython-3.12 is needed for the build.
+RUN ( cd /opt/_internal && tar -xf static-libs-for-embedding-only.tar.xz || true )
 
 
 # Node.js interpreter.
