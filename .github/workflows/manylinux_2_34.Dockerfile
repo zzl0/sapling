@@ -32,7 +32,9 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --de
 # - clang-devel: used by bindgen, used by zstd-sys
 # - openssl-devel: used by curl-sys (non-static openssl)
 # - perl: openssl build dependency (static openssl)
-RUN dnf install -y clang-devel perl
+# - thrift: required by Rust thrift build scripts, which expect a thrift1 binary
+RUN dnf install -y clang-devel perl thrift && \
+    ln -sf "$(command -v thrift)" /usr/local/bin/thrift1
 
 
 # Populate the Yarn offline mirror in a "fork".
