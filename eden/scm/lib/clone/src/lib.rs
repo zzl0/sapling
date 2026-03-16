@@ -7,11 +7,9 @@
 
 use std::collections::HashSet;
 use std::env;
-use std::ffi::OsStr;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
-use std::process::Command;
 
 use anyhow::Context;
 use anyhow::Result;
@@ -35,6 +33,11 @@ use util::errors::IOContext;
 use util::file::atomic_write;
 use util::path::absolute;
 use util::path::expand_path;
+
+#[cfg(feature = "eden")]
+use std::ffi::OsStr;
+#[cfg(feature = "eden")]
+use std::process::Command;
 
 pub fn get_default_destination_directory(config: &dyn Config) -> Result<PathBuf> {
     Ok(absolute(
@@ -113,6 +116,7 @@ pub enum EdenCloneError {
     MissingCommandConfig(),
 }
 
+#[cfg(feature = "eden")]
 #[tracing::instrument]
 fn run_eden_clone_command(clone_command: &mut Command) -> Result<()> {
     let output = clone_command.output().with_context(|| {
@@ -145,6 +149,7 @@ fn run_eden_clone_command(clone_command: &mut Command) -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "eden")]
 #[instrument(err)]
 pub fn eden_clone(
     repo: &Repo,
@@ -197,6 +202,17 @@ pub fn eden_clone(
     }
 
     run_eden_clone_command(&mut clone_command).context("error performing eden clone")
+}
+
+#[cfg(not(feature = "eden"))]
+pub fn eden_clone(
+    _repo: &Repo,
+    _working_copy: &Path,
+    _target: Option<HgId>,
+    _filters: Option<HashSet<Text>>,
+    _enable_windows_symlinks: bool,
+) -> Result<()> {
+    bail!("eden clone is not supported in this build");
 }
 
 /// Get the tag to use for streaming clone from config.
