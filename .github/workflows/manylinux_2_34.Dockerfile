@@ -34,6 +34,16 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --de
 # - perl: openssl build dependency (static openssl)
 RUN dnf install -y clang-devel perl
 
+# On aarch64, the manylinux Python static library (libpython3.12.a) is not compiled
+# with -fPIC. GCC 14 enforces that all objects in a PIE (-pie) executable must be
+# position-independent, which causes the sapling-backtrace-python build script (and
+# the main sapling binary) to fail to link. Disable PIE for aarch64 Rust builds.
+RUN if [ "$(uname -m)" = "aarch64" ]; then \
+    mkdir -p /root/.cargo && \
+    printf '[target.aarch64-unknown-linux-gnu]\nrustflags = ["-C", "link-arg=-no-pie"]\n' \
+        >> /root/.cargo/config.toml; \
+fi
+
 
 # Populate the Yarn offline mirror in a "fork".
 FROM base AS populate-offline-cache
