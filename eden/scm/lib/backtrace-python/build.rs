@@ -10,6 +10,7 @@
 //! This probes the offsets needed to extract Python frames from native stack
 //! traces and passes them to the compiler via environment variables.
 
+#[cfg(not(all(target_os = "linux", target_arch = "aarch64")))]
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
@@ -20,4 +21,10 @@ fn main() {
     } else {
         eprintln!("No offset");
     }
+}
+
+#[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+fn main() {
+    println!("cargo:rerun-if-changed=build.rs");
+    eprintln!("Skipping Python offset probe on Linux/aarch64");
 }
